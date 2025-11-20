@@ -15,6 +15,7 @@
 #
 #    Purpose:  Build tmns applications in a more advanced way
 
+#  Python Standard Libraries
 import argparse
 import configparser
 import logging
@@ -36,9 +37,9 @@ DEFAULT_REPO_LIST = ['terminus-cmake',
 
 class TerminusRepo:
 
-    def __init__( self, 
-                  repo_name, 
-                  repo_path, 
+    def __init__( self,
+                  repo_name,
+                  repo_path,
                   build_modes,
                   clean_repo,
                   build_missing ):
@@ -57,20 +58,20 @@ class TerminusRepo:
             self.clean_repo = True
 
     def get_build_command( self, build_mode, clean_repo, build_missing ):
-        
+
         build_flags = { 'release': '-r',
                         'debug': '' }
-        
+
         clean_flag = { True: '-c',
                        False: '' }
-        
+
         bm_flag = { True: '--build-missing',
                     False: '' }
-        
+
         cmd = f'conan-build.sh {build_flags[build_mode]} {clean_flag[clean_repo]} {bm_flag[build_missing]}'
 
         return cmd
-    
+
     def build( self ):
 
         logger = logging.getLogger('Repo.build')
@@ -78,12 +79,12 @@ class TerminusRepo:
         #  Check if the directory is installed
         if os.path.exists( self.repo_path ) == False:
             logger.info( f'    {self.repo_name} not found. Skipping' )
-            return 
+            return
 
         #  Jump to repo
         orig_path = os.getcwd()
         os.chdir( self.repo_path )
-        
+
         for build_mode in self.build_modes:
             build_cmd = self.get_build_command( build_mode    = build_mode,
                                                 clean_repo    = self.clean_repo,
@@ -102,7 +103,7 @@ class TerminusRepo:
         os.chdir(orig_path)
 
         return True
-    
+
     def to_log_string(self, offset = 4 ):
 
         gap = ' ' * offset
@@ -127,7 +128,7 @@ class TerminusProfile:
         return output
 
 
-def load_profile( profile_path, 
+def load_profile( profile_path,
                   ignore_profiles,
                   build_modes,
                   clean_repos,
@@ -138,7 +139,7 @@ def load_profile( profile_path,
     if profile_path != None and os.path.exists( profile_path ) == False:
         print( f'User provided profile ({profile_path}) does not exist. Exiting.' )
         return None
-    
+
     #  Otherwise, if the profile is none, look for a default profile
     elif profile_path is None and ( ignore_profiles != True and os.path.exists( DEFAULT_PROFILE_PATH ) == True):
         print( f'Found default profile ({DEFAULT_PROFILE_PATH}). Using that.' )
@@ -153,7 +154,7 @@ def load_profile( profile_path,
                                         build_modes   = build_modes,
                                         clean_repo    = clean_repos,
                                         build_missing = build_missing ) )
-        
+
         profile = TerminusProfile( repos = repos )
         return profile
 
@@ -206,7 +207,7 @@ def parse_command_line():
                           action = 'store_const',
                           const = 'DEBUG',
                           help = 'Log at debugging level' )
-    
+
     parser.add_argument( '-r',
                          dest = 'build_modes',
                          action = 'append_const',
@@ -214,33 +215,33 @@ def parse_command_line():
                          const = 'release',
                          required= False,
                          help = 'Build in release mode.' )
-    
+
     parser.add_argument( '-d',
                          dest = 'build_modes',
                          action = 'append_const',
                          const = 'debug',
                          required= False,
                          help = 'Build in debug mode.' )
-    
+
     parser.add_argument( '-c',
                          dest = 'clean_repos',
                          action = 'store_true',
                          default = None,
                          required= False,
                          help = 'Clean repos when building.' )
-    
+
     parser.add_argument( '-x',
                          dest = 'allow_failures',
                          default = False,
                          action = 'store_true',
                          help = 'Keep building repos even if others fail.' )
-    
+
     parser.add_argument( '-p',
                          dest='profile_path',
                          default = None,
                          required = False,
                          help = 'Define a profile to use for setting up build.' )
-    
+
     parser.add_argument( '--ignore-profiles',
                          default=False,
                          dest = 'ignore_profiles',
@@ -253,13 +254,13 @@ def parse_command_line():
                          default = None,
                          required = False,
                          help = 'Write output to log path.' )
-    
+
     parser.add_argument( '--build-missing',
                          dest = 'build_missing',
                          action = 'store_true',
                          default = False,
                          help = 'Tell build system to build missing repos' )
-    
+
     return parser.parse_args()
 
 def configure_logging( options ):
@@ -282,7 +283,7 @@ def main():
                             cmd_args.build_modes,
                             cmd_args.clean_repos,
                             cmd_args.build_missing )
-    
+
     #  Exit if task failed
     if profile is None:
         return 1

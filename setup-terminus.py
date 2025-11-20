@@ -9,10 +9,16 @@
 ##                                                                                    ##
 ############################# INTELLECTUAL PROPERTY RIGHTS #############################
 #
+#       File:    setup-terminus.py
+#       Author:  Marvin Smith
+#       Date:    11/19/2025
+#
 
+#  Python Standard Libraries
 import argparse
 import logging
 import os
+import shutil
 import subprocess
 import sys
 
@@ -27,18 +33,18 @@ def is_valid_python(string):
     logging.info( f'Python ({string}) version: {pyversion.split(" ")[1].strip()}' )
     return string
 
-    
+
 def parse_command_line():
 
     parser = argparse.ArgumentParser( description = 'Setup Virtual Environment for Terminus Apps.' )
-    
+
     parser.add_argument( '-v', '--verbose',
                          dest = 'log_level',
                          default = logging.INFO,
                          action = 'store_const',
                          const = logging.DEBUG,
                          help = 'Use verbose logging' )
-    
+
     parser.add_argument( '--venv-path',
                          dest = 'venv_path',
                          default = DEFAULT_VENV_PATH,
@@ -50,19 +56,43 @@ def parse_command_line():
                          default = False,
                          action = 'store_true',
                          help = 'Create environment even if it exists.' )
-    
+
     parser.add_argument( '-p', '--python',
                          dest = 'python_path',
                          default = 'python3',
                          type = is_valid_python,
                          help = 'Python installation' )
-    
+
     parser.add_argument( '--dry-run',
                          dest = 'dry_run',
                          default = False,
                          action = 'store_true',
                          help = 'Print commands which would be executed, then exit.' )
-    
+
+    parser.add_argument( '--skip-conan',
+                         dest = 'skip_conan',
+                         default = False,
+                         action = 'store_true',
+                         help = 'Skip Conan setup.' )
+
+    parser.add_argument( '--skip-shell',
+                         dest = 'skip_shell',
+                         default = False,
+                         action = 'store_true',
+                         help = 'Do not modify shell RC files.' )
+
+    parser.add_argument( '--bash',
+                         dest = 'use_bash',
+                         default = False,
+                         action = 'store_true',
+                         help = 'Update ~/.bashrc for helper scripts.' )
+
+    parser.add_argument( '--zsh',
+                         dest = 'use_zsh',
+                         default = False,
+                         action = 'store_true',
+                         help = 'Update ~/.zshrc for helper scripts.' )
+
     return parser.parse_args()
 
 def run_command( logger, command, desc, dry_run, exit_if_fail = True ):
@@ -100,10 +130,109 @@ def setup_virtual_environment( logger, python_path, venv_path, dry_run ):
     cmd = f'. {venv_path}/bin/activate && pip install conan'
     run_command( logger, cmd, 'installing conan', dry_run )
 
+def update_tmns_shell( logger, shell_path, dry_run ):
+
+    if not os.path.exists( shell_path ):
+        logger.warning( f'Shell RC file does not exist: {shell_path}' )
+        return
+
+    logger.info( f'Updating {shell_path}' )
+
+    with open( shell_path, 'r' ) as fin:
+        text = fin.read()
+
+    home_dir = os.environ.get( "HOME" )
+    local_bin = os.path.join( home_dir, '.local', 'bin' )
+    path_value = os.environ.get( 'PATH', '' )
+
+    if local_bin in path_value.split( ':' ):
+        logger.info( f'{local_bin} is already in PATH.' )
+    else:
+        logger.info( f'{local_bin} is not in PATH; adding.' )
+        line = 'export PATH="${HOME}/.local/bin:${PATH}"\n'
+        if dry_run:
+            logger.info( f'Would append PATH update to {shell_path}' )
+        else:
+            with open( shell_path, 'a' ) as fout:
+                fout.write( line )
+
+    if 'tmns-import' in text:
+        logger.info( 'tmns-import already defined. skipping' )
+    else:
+        logger.info( f'tmns-import is not defined.  Adding to {shell_path}' )
+        block = '\n# Added by terminus-repo-utilities: install-local.bash\nfunction tmns-import() {\n   source ${HOME}/.local/bin/tmns_bash_aliases.bash\n}\n'
+        if dry_run:
+            logger.info( f'Would append tmns-import function to {shell_path}' )
+        else:
+            with open( shell_path, 'a' ) as fout:
+                fout.write( block )
+
+def install_helper_scripts( logger, dry_run, skip_shell, use_bash, use_zsh ):
+
+    home_dir = os.environ.get( "HOME" )
+    if home_dir is None:
+        logger.error( 'HOME environment variable is not set.' )
+        return
+
+    scripts_dir = os.path.join( os.path.dirname( os.path.abspath( __file__ ) ), 'scripts' )
+    source_dir = os.path.join( scripts_dir, 'utils' )
+
+    if not os.path.isdir( source_dir ):
+        logger.error( f'Utilities source directory not found: {source_dir}' )
+        return
+
+    dest_dir = os.path.join( home_dir, '.local', 'bin' )
+    logger.info( f'Installing helper scripts from {source_dir} to {dest_dir}' )
+
+    if dry_run:
+        logger.info( 'Dry-run enabled; not copying files or updating shell configuration.' )
+    else:
+        os.makedirs( dest_dir, exist_ok = True )
+
+        for root, dirs, files in os.walk( source_dir ):
+            rel_root = os.path.relpath( root, source_dir )
+            target_root = dest_dir if rel_root == '.' else os.path.join( dest_dir, rel_root )
+            os.makedirs( target_root, exist_ok = True )
+            for filename in files:
+                src_path = os.path.join( root, filename )
+                dst_path = os.path.join( target_root, filename )
+                shutil.copy2( src_path, dst_path )
+
+    if skip_shell:
+        return
+
+    shell_paths = []
+
+    if use_bash:
+        shell_paths.append( os.path.join( home_dir, '.bashrc' ) )
+    if use_zsh:
+        shell_paths.append( os.path.join( home_dir, '.zshrc' ) )
+
+    if not shell_paths:
+        for candidate in [ '.zshrc', '.bashrc' ]:
+            candidate_path = os.path.join( home_dir, candidate )
+            if os.path.exists( candidate_path ):
+                shell_paths.append( candidate_path )
+
+    for shell_path in shell_paths:
+        update_tmns_shell( logger, shell_path, dry_run )
+
+def run_conan_setup( logger, dry_run ):
+
+    scripts_dir = os.path.join( os.path.dirname( os.path.abspath( __file__ ) ), 'scripts' )
+    conan_setup = os.path.join( scripts_dir, 'utils', 'conan-setup.bash' )
+
+    if not os.path.exists( conan_setup ):
+        logger.error( f'Conan setup script not found: {conan_setup}' )
+        return
+
+    cmd = f'"{conan_setup}"'
+    run_command( logger, cmd, 'run Conan setup', dry_run )
+
 def update_shell_scripts( logger, venv_path, dry_run ):
 
     #  Iterate over available scripts
-    for shell_rc in [ f'{os.environ.get("HOME")}/.bashrc', f'{os.environ.get("HOME")}/.zshrc' ]:
+    for shell_rc in [ f'{os.environ.get("HOME")}/.bashrc', f'{os.environ.get("HOME")}/.bash_profile', f'{os.environ.get("HOME")}/.zshrc' ]:
 
         if os.path.exists( shell_rc ):
 
@@ -129,42 +258,26 @@ def update_shell_scripts( logger, venv_path, dry_run ):
 def main():
 
     logging.basicConfig( level = logging.INFO, format = LOG_FORMAT )
-    logger = logging.getLogger( 'setup_python_environment' )
+    logger = logging.getLogger( 'terminus-setup' )
 
     cmd_args = parse_command_line()
 
     #  Setup logging
     logger.setLevel( cmd_args.log_level )
-    logger.debug( 'Installing Python Virtual Environment' )
-
-    build_venv = True
+    logger.debug( 'Running Terminus setup tool' )
 
     #  Check if environment already is setup
-    venv_path = cmd_args.venv_path
-    env_activate_path = os.path.join( venv_path, 'bin/activate' )
-    logger.debug( f'Checking venv activate script: {env_activate_path}' )
+    install_helper_scripts( logger,
+                            cmd_args.dry_run,
+                            cmd_args.skip_shell,
+                            cmd_args.use_bash,
+                            cmd_args.use_zsh )
 
-    if os.path.exists( env_activate_path ):
-        logger.warning( f'Environment path already exists at {venv_path}' )
-        if cmd_args.create_if_exists:
-            removing_existing( logger, venv_path, cmd_args.dry_run )
-        else:
-            build_venv = False
-
-    if build_venv:
-        build_virtual_environment( logger, 
-                                   venv_path,
-                                   cmd_args.python_path,
-                                   cmd_args.dry_run )
-        
-    setup_virtual_environment( logger, 
-                               cmd_args.python_path,
-                               venv_path, 
-                               cmd_args.dry_run )
-
-    update_shell_scripts( logger, 
-                          venv_path,
-                          cmd_args.dry_run )
+    if cmd_args.skip_conan:
+        logger.info( 'Skipping Conan setup.' )
+    else:
+        run_conan_setup( logger,
+                         cmd_args.dry_run )
 
 if __name__ == '__main__':
     main()

@@ -9,42 +9,65 @@
 ##                                                                                    ##
 ############################# INTELLECTUAL PROPERTY RIGHTS #############################
 #
- # Python Libraries
+#    File:    tmns-clone-repos.py
+#    Author:  Marvin Smith
+#    Date:    11/19/2025
+#
+
+#  Python Libraries
 import argparse
 import configparser
 import logging
 import os
 
-DEFAULT_REPO_LIST = { 'terminus-setup'         : { 'url' :  'git@github.com:Terminus-Geospatial/terminus-setup.git',
-                                                   'tags': ['tools'] },
-                      'terminus-cmake'         : { 'url' :  'git@github.com:Terminus-Geospatial/terminus-cmake.git',
-                                                   'tags': ['tools','cpp','cmake','build'] },
-                      'terminus-log'           : { 'url' :  'git@github.com:Terminus-Geospatial/terminus-log.git',
-                                                   'tags': ['tools','cpp','log'] },
-                      'terminus-outcome'       : { 'url' :  'git@github.com:Terminus-Geospatial/terminus-outcome.git',
-                                                   'tags': ['tools','cpp','error'] },
-                      'terminus-core'          : { 'url' :  'git@bitbucket.org:msmith81886/terminus-core',
-                                                   'tags': ['tools','cpp'] },
-                      'terminus-math'          : { 'url' :  'git@bitbucket.org:msmith81886/terminus-math',
-                                                   'tags': ['tools','cpp'] },
-                      'terminus-coord'         : { 'url': 'git@github.com:Terminus-Geospatial/terminus-coord.git',
-                                                   'tags': ['tools','cpp'] },
-                      'terminus-nitf'          : { 'url' :  'git@bitbucket.org:msmith81886/terminus-nitf',
-                                                   'tags': ['tools','cpp'] },
-                      'terminus-image'         : { 'url' :  'git@bitbucket.org:msmith81886/terminus-image',
-                                                   'tags': ['tools','cpp'] },
-                      'terminus-cpp-demos'     : { 'url' :  'git@bitbucket.org:msmith81886/terminus-cpp-demos',
-                                                   'tags': ['tools','cpp'] },
-                      'terminus-docs'          : { 'url' :  'git@github.com:Terminus-Geospatial/terminus-docs.git',
-                                                   'tags': ['docs'] } }
+from tmns.default_profiles import default_profile
+from tmns.profile import Profile, Repo
+
+DEFAULT_PROFILE_PATH = "tmns-profile.cfg"
+
+def load_profile( profile_path = None ) -> Profile:
+
+    if profile_path is None:
+        profile_path = DEFAULT_PROFILE_PATH
+
+    if os.path.exists( profile_path ):
+
+        cfg = configparser.ConfigParser()
+        cfg.read( profile_path )
+
+        project_name = cfg.get( 'profile', 'project_name', fallback = 'Unknown Profile' )
+
+        repos = []
+        for section in cfg.sections():
+            if section == 'profile':
+                continue
+
+            repo_name = cfg.get( section, 'repo_name', fallback = section )
+            build     = cfg.getboolean( section, 'build', fallback = True )
+            repo_url  = cfg.get( section, 'repo_url', fallback = '' )
+            branch    = cfg.get( section, 'branch_name', fallback = 'main' )
+            tags_raw  = cfg.get( section, 'tags', fallback = '' )
+            tags      = [ tag.strip() for tag in tags_raw.split(',') if tag.strip() ]
+
+            repos.append( Repo( repo_name   = repo_name,
+                                build       = build,
+                                repo_url    = repo_url,
+                                branch_name = branch,
+                                tags        = tags ) )
+
+        return Profile( project_name = project_name,
+                        repos        = repos )
+
+    return default_profile()
 
 def parse_command_line():
 
     parser = argparse.ArgumentParser( description='Clone all repos for the primary Terminus "stack".')
 
     tag_list = []
-    for repo in DEFAULT_REPO_LIST:
-        for tag in DEFAULT_REPO_LIST[repo]['tags']:
+    profile = load_profile()
+    for repo in profile.repos:
+        for tag in repo.tags:
             if not tag in tag_list:
                 tag_list.append( tag )
 
@@ -68,14 +91,14 @@ def parse_command_line():
                          action = 'store_const',
                          const = 'all',
                          help = 'Clone all repos for the project.' )
-    
+
     parser.add_argument( '-t',
                          dest = 'tags',
                          action = 'append',
                          default=[],
                          required= False,
                          help = f'Clone repos with a specific tag. Expected Tags: {tag_list}' )
-    
+
     return parser.parse_args()
 
 def configure_logging( options ):
@@ -86,23 +109,44 @@ def configure_logging( options ):
         logging.basicConfig( level = options.log_level, filename = options.log_file_path )
 
 def main():
-    
+
     #  Load command-line arguments
     cmd_args = parse_command_line()
 
     #  Setup logging
     configure_logging( cmd_args )
 
-    #  Iterate over repo list
-    for repo in DEFAULT_REPO_LIST:
-        
-        #  Get the repo url
-        repo_url = DEFAULT_REPO_LIST[repo]['url']
+    profile = load_profile()
 
-        #  Build clone command
-        clone_cmd = f'git clone {repo_url}'
+    #  Iterate over repo list
+    for repo in profile.repos:
+
+        if len( cmd_args.tags ) > 0:
+            matched = False
+            for tag in repo.tags:
+                if tag in cmd_args.tags:
+                    matched = True
+                    break
+            if matched is False:
+                continue
+
+        repo_url     = repo.repo_url
+        repo_name    = repo.repo_name
+        branch_name  = repo.branch_name
+
+        #  Skip cloning if the destination directory already exists
+        if os.path.exists( repo_name ):
+            logging.info( f"Skipping clone of '{repo_name}' because directory already exists (expected branch '{branch_name}')." )
+            continue
+
+        clone_cmd = f'git clone {repo_url} {repo_name}'
         logging.debug( f'Command: {clone_cmd}' )
         os.system( clone_cmd )
+
+        #  Checkout the requested branch
+        checkout_cmd = f'git -C {repo_name} checkout {branch_name}'
+        logging.debug( f'Command: {checkout_cmd}' )
+        os.system( checkout_cmd )
 
 if __name__ == '__main__':
     main()
