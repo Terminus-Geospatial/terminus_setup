@@ -124,6 +124,11 @@ if [ -z "${source_root}" ]; then
     source_root="$(pwd)"
 fi
 
+if [ ! -f "${source_root}/conanfile.py" ]; then
+    log_info "No conanfile.py found in ${source_root}. Skipping Conan build."
+    exit 0
+fi
+
 if [ -z "${build_root}" ]; then
     if [ "$source_root" == "$(pwd)" ]; then
         build_root="$(pwd)/build"
@@ -220,7 +225,7 @@ exit 0
 #  This prevents unnecessary copies of library package contents into the deployment area.
 #
 deploy_func="$(grep 'def deploy' ${conanfile} || true)"
-if [ ! -z "${deploy_func}" ]; then 
+if [ ! -z "${deploy_func}" ]; then
     if [ "${no_deploy}" == 'true' ]; then
         log_info "Skipping deployment"
     else
