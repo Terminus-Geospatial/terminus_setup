@@ -21,58 +21,58 @@ from tmns.profile import Profile, Repo
 
 
 DEFAULT_REPO_LIST = {
-    'terminus-setup': {
-        'url': 'git@github.com:Terminus-Geospatial/terminus-setup.git',
+    'terminus_setup': {
+        'url': 'git@github.com:Terminus-Geospatial/terminus_setup.git',
         'default_branch': 'main',
         'tags': ['tools'],
     },
-    'terminus-cmake': {
-        'url': 'git@github.com:Terminus-Geospatial/terminus-cmake.git',
+    'terminus_cmake': {
+        'url': 'git@github.com:Terminus-Geospatial/terminus_cmake.git',
         'default_branch': 'main',
         'tags': ['tools', 'cpp', 'cmake', 'build'],
     },
-    'terminus-log': {
-        'url': 'git@github.com:Terminus-Geospatial/terminus-log.git',
+    'terminus_log': {
+        'url': 'git@github.com:Terminus-Geospatial/terminus_log.git',
         'default_branch': 'main',
         'tags': ['tools', 'cpp', 'log'],
     },
-    'terminus-outcome': {
-        'url': 'git@github.com:Terminus-Geospatial/terminus-outcome.git',
+    'terminus_outcome': {
+        'url': 'git@github.com:Terminus-Geospatial/terminus_outcome.git',
         'default_branch': 'main',
         'tags': ['tools', 'cpp', 'error'],
     },
-    'terminus-core': {
-        'url': 'git@bitbucket.org:msmith81886/terminus-core',
+    'terminus_core': {
+        'url': 'git@github.com:Terminus-Geospatial/terminus_core.git',
         'default_branch': 'main',
         'tags': ['tools', 'cpp'],
     },
-    'terminus-math': {
-        'url': 'git@bitbucket.org:msmith81886/terminus-math',
+    'terminus_math': {
+        'url': 'git@github.com:Terminus-Geospatial/terminus_math.git',
         'default_branch': 'main',
         'tags': ['tools', 'cpp'],
     },
-    'terminus-coord': {
-        'url': 'git@github.com:Terminus-Geospatial/terminus-coord.git',
+    'terminus_coord': {
+        'url': 'git@github.com:Terminus-Geospatial/terminus_coord.git',
         'default_branch': 'main',
         'tags': ['tools', 'cpp'],
     },
-    'terminus-nitf': {
-        'url': 'git@bitbucket.org:msmith81886/terminus-nitf',
+    'terminus_nitf': {
+        'url': 'git@github.com:Terminus-Geospatial/terminus_nitf.git',
         'default_branch': 'main',
         'tags': ['tools', 'cpp'],
     },
-    'terminus-image': {
-        'url': 'git@bitbucket.org:msmith81886/terminus-image',
+    'terminus_image': {
+        'url': 'git@github.com:Terminus-Geospatial/terminus_image.git',
         'default_branch': 'main',
         'tags': ['tools', 'cpp'],
     },
-    'terminus-cpp-demos': {
-        'url': 'git@bitbucket.org:msmith81886/terminus-cpp-demos',
+    'terminus_cpp_demos': {
+        'url': 'git@github.com:Terminus-Geospatial/terminus_cpp_demos.git',
         'default_branch': 'main',
         'tags': ['tools', 'cpp'],
     },
-    'terminus-docs': {
-        'url': 'git@github.com:Terminus-Geospatial/terminus-docs.git',
+    'terminus_docs': {
+        'url': 'git@github.com:Terminus-Geospatial/terminus_docs.git',
         'default_branch': 'main',
         'tags': ['docs'],
     },
