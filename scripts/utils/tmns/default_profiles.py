@@ -51,6 +51,11 @@ DEFAULT_REPO_LIST = {
         'default_branch': 'main',
         'tags': ['tools', 'cpp'],
     },
+    'terminus_fcs': {
+        'url': 'git@github.com:Terminus-Geospatial/terminus_fcs.git',
+        'default_branch': 'main',
+        'tags': ['tools', 'cpp'],
+    },
     'terminus_coord': {
         'url': 'git@github.com:Terminus-Geospatial/terminus_coord.git',
         'default_branch': 'main',

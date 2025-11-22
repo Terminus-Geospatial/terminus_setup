@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
+## [0.0.3]
+
+### Changed
+- Adding Framework Configuration Service to default profile list.
+
 ## [0.0.2]
 
 ### Changed
@@ -12,7 +17,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [0.0.1]
 
 ### Added
-
 - Adding this changelog
 - Formalizing versioning
 - Refactoring setup script
