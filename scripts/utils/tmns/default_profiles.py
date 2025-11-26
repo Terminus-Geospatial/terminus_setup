@@ -86,6 +86,11 @@ DEFAULT_REPO_LIST = {
         'default_branch': 'main',
         'tags': ['docs'],
     },
+    'terminus_platform_lib_cpp': {
+        'url': 'git@github.com:Terminus-Geospatial/terminus_platform_lib_cpp.git',
+        'default_branch': 'main',
+        'tags': ['tools', 'cpp'],
+    },
 }
 
 
