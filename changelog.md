@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
+## [1.0.0] - 2026-01-11
+
+### Changed
+- Adding Terminus Astro to repo list
+- Adding Terminus Toolbox to repo list
+- Removing Terminus-Coord from repo list
+
 ## [0.0.4] - 2025-11-26
 ### Added
 - Adding Terminus Platform C++ API library to default profile list.

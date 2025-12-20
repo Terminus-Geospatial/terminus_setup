@@ -61,8 +61,8 @@ DEFAULT_REPO_LIST = {
         'default_branch': 'main',
         'tags': ['tools', 'cpp'],
     },
-    'terminus_coord': {
-        'url': 'git@github.com:Terminus-Geospatial/terminus_coord.git',
+    'terminus_astro': {
+        'url': 'git@github.com:Terminus-Geospatial/terminus_astro.git',
         'default_branch': 'main',
         'tags': ['tools', 'cpp'],
     },
@@ -91,6 +91,11 @@ DEFAULT_REPO_LIST = {
         'default_branch': 'main',
         'tags': ['tools', 'cpp'],
     },
+    'terminus_toolbox': {
+        'url': 'git@github.com:Terminus-Geospatial/terminus_toolbox.git',
+        'default_branch': 'main',
+        'tags': ['tools', 'cpp'],
+    }
 }
 
 
