@@ -82,12 +82,17 @@ __cli_config=()
 __use_minimal_setup="${conan_setup_use_minimal:-false}"
 __upgrade=false
 __export=false
+__python_cmd='python3'
 
 while [ $# -gt 0 ]; do
     case $1 in
         -h | --help)
             show_help
             $succeed
+            ;;
+        --python)
+            shift
+            __python_cmd="$1"
             ;;
         -c | --config)
             shift
@@ -200,7 +205,10 @@ if [ "$__use_minimal_setup" == 'false' ]; then
     if [ -z "$__cmd_conan" ] || ${__upgrade}; then
         log_info "Conan not available or an upgrade is requested.  Installing."
         log_info "Checking Python installation."
-        __cmd_python="$(which python3 2> /dev/null || true )"
+
+        # Use the specified Python command (defaults to python3)
+        __cmd_python="$__python_cmd"
+
         if [ -z "$__cmd_python" ]; then
             log_error "Python not available.  Install Python3 or SCL Python3."
             $fail

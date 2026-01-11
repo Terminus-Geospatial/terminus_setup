@@ -217,17 +217,20 @@ def install_helper_scripts( logger, dry_run, skip_shell, use_bash, use_zsh ):
     for shell_path in shell_paths:
         update_tmns_shell( logger, shell_path, dry_run )
 
-def run_conan_setup( logger, dry_run ):
+def run_conan_setup( logger, python_path, venv_path, dry_run ):
 
-    scripts_dir = os.path.join( os.path.dirname( os.path.abspath( __file__ ) ), 'scripts' )
-    conan_setup = os.path.join( scripts_dir, 'utils', 'conan-setup.bash' )
+    # Check if virtual environment already exists
+    if os.path.exists( venv_path ):
+        logger.info( f'Virtual environment already exists at {venv_path}' )
+    else:
+        logger.info( f'Creating virtual environment at {venv_path}' )
+        build_virtual_environment( logger, venv_path, python_path, dry_run )
 
-    if not os.path.exists( conan_setup ):
-        logger.error( f'Conan setup script not found: {conan_setup}' )
-        return
+    # Setup the virtual environment and install conan
+    setup_virtual_environment( logger, python_path, venv_path, dry_run )
 
-    cmd = f'"{conan_setup}"'
-    run_command( logger, cmd, 'run Conan setup', dry_run )
+    # Add go-conan alias to shell
+    update_shell_scripts( logger, venv_path, dry_run )
 
 def update_shell_scripts( logger, venv_path, dry_run ):
 
@@ -251,7 +254,7 @@ def update_shell_scripts( logger, venv_path, dry_run ):
             if add_command:
                 cmd  = f'\necho "# This function added by Terminus setup-conan script." >> {shell_rc}\n'
                 cmd += f'echo "function go-conan() {{" >> {shell_rc}\n'
-                cmd += f"echo '    . ${{HOME}}/conan/bin/activate' >> {shell_rc}\n"
+                cmd += f"echo '    . {venv_path}/bin/activate' >> {shell_rc}\n"
                 cmd += f"echo '}}' >> {shell_rc}"
                 run_command( logger, cmd, 'adding conan alias', dry_run )
 
@@ -277,6 +280,8 @@ def main():
         logger.info( 'Skipping Conan setup.' )
     else:
         run_conan_setup( logger,
+                         cmd_args.python_path,
+                         cmd_args.venv_path,
                          cmd_args.dry_run )
 
 if __name__ == '__main__':
