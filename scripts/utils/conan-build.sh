@@ -242,7 +242,7 @@ if [ ! -z "${deploy_func}" ]; then
         #  graph.  You could imagine this might take up a lot of disk space unnecessarily,
         #  which is why we avoid it.
         log_info "Running deployment script"
-        CMD="${dir_scripts}/conan-deploy.bash ${pkg_ref} ${options[@]}"
+        CMD="${dir_scripts}/conan-deploy.sh ${pkg_ref} ${options[@]}"
         echo ${CMD}
         ${CMD}
     fi

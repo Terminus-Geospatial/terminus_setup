@@ -28,10 +28,10 @@ function details() {
     echo "isolation.  If a package matching the provided reference is found in the local Conan cache, then"
     echo "the contents from the cached package will be deployed without reaching out to the Package Manager."
     echo "Otherwise, Conan will check for a package in the package-manager to download, then deploy"
-    echo 
-    echo "The script deploys applications to '\$HOME/installs/apps' by default.  You can control this by"
+    echo
+    echo "The script deploys applications to '\$HOME/installs/terminus' by default.  You can control this by"
     echo "providing the '-d' option."
-    echo 
+    echo
     echo "IMPORTANT:  When a 'reference' is not provided, the script will deploy the package recipe in one"
     echo "of two ways: (1) if a 'deploy' method is present in the recipe, it will be used to create the "
     echo "deployment, or (2) if a 'deploy' method is not present in the recipe, then the default 'deploy'"
@@ -39,7 +39,7 @@ function details() {
     echo "to the deployment destination.  Note that (2) can result in very large deployoments for libraries"
     echo "that have a lot of dependencies, so in general we only run this script on packages that provide"
     echo " a 'deploy' method in their recipe."
-    echo 
+    echo
     echo "Examples:"
     echo
     echo "  (1) $(basename $0)"
@@ -53,9 +53,9 @@ function details() {
     echo
     echo "      Installs and deploys the 'foo/1.0.0@' package to '~/installs/apps/foo'. If the package is"
     echo "      not in the local Conan cache, Conan will download it from whatever repo it is configured to use."
-    echo 
+    echo
     echo "  (3) $(basename $0) foo/1.0.0@branches/develop -d ./deployment"
-    echo 
+    echo
     echo "      Installs and deploys the 'foo/1.0.0@branches/develop' package to './deployment'. If the"
     echo "      package is not in the local Conan cache, Conan will download it from whatever repo it is"
     echo "      configured to use."
@@ -74,7 +74,7 @@ function details() {
     echo
     echo "  -d,--dest <dir>"
     echo "      The location to deploy the application to.  The value of '<dir>' may be relative or absolute."
-    echo "      The default deployment area is '\$HOME/installs/apps/<name>', where '<name>' is the name of"
+    echo "      The default deployment area is '\$HOME/installs/terminus/<name>', where '<name>' is the name of"
     echo "      the package."
     echo
     echo "  -r,--release"
@@ -94,7 +94,7 @@ function details() {
 
 function show_help() {
     echo "Terminus Build Process: Deploy an App with Conan"
-    echo 
+    echo
     usage
     echo
     details
@@ -168,7 +168,7 @@ source "${dir_scripts}/conan-setup.bash" -m
 #  Make sure we have everything we need for an install/deployment
 #
 if [ -z "${reference}" ]; then
-    #  The user didn't provide an explicit reference.  We will attempt to form it 
+    #  The user didn't provide an explicit reference.  We will attempt to form it
     #  ourselves from a local 'conanfile.py' or using the legacy options.
     if [ -z ${app_name} ]; then
         app_name=$(getAppNameFromConanfileFunc)
@@ -194,10 +194,24 @@ else
     #  the package contents to.
     app_name_version="$(echo ${reference} | cut -d '@' -f 1)"
     app_name="$(echo ${app_name_version} | cut -d '/' -f 1)"
+
+    #  Check if there's a deploy method in the local conanfile.py
+    if [ -f "conanfile.py" ]; then
+        deploy_func="$(grep 'def deploy' conanfile.py || true)"
+        if [ ! -z "${deploy_func}" ]; then
+            log_info "Will use 'deploy' method from recipe."
+        else
+            log_info "Will use default deployer (copies content of all package in dependency graph)"
+            deployer="-d runtime_deploy"
+        fi
+    else
+        log_info "No local conanfile.py found, using default deployer"
+        deployer="-d runtime_deploy"
+    fi
 fi
 
 #  Configure the output location
-out_dir="${out_dir:-${HOME}/installs/apps/$app_name}"
+out_dir="${out_dir:-${HOME}/installs/terminus/$app_name}"
 
 #  Deploy
 log_info "Will deploy to ${out_dir}"
@@ -208,7 +222,7 @@ log_info "--------------------------------------------------------"
 mkdir -p "${out_dir}"
 cd "${out_dir}"
 echo "PWD: ${PWD}"
-CMD="conan install ${conanfile_path} -s build_type=${build_type} ${options[@]} ${deployer}"
+CMD="conan install ${conanfile_path} -s build_type=${build_type} ${options[@]} --deployer-package ${reference} ${deployer}"
 echo "${CMD}"
 ${CMD}
 
