@@ -229,9 +229,55 @@ __conan_version="$(conan --version | cut -d ' ' -f3 )"
 log_info "Using conan $__conan_version"
 
 #--------------------------------------------#
+#-          Setup Conan Profile             -#
+#--------------------------------------------#
+
+log_info 'Setting up Conan profile'
+
+# Check if default profile exists
+if [ -f "${HOME}/.conan2/profiles/default" ]; then
+    log_info "Conan profile already exists at ${HOME}/.conan2/profiles/default"
+else
+    log_info "Creating default Conan profile"
+    conan profile detect
+fi
+
+#--------------------------------------------#
+#-          OS-Specific Configuration      -#
+#--------------------------------------------#
+
+# Detect operating system
+__os_name="$(uname -s)"
+__os_version="$(uname -r)"
+
+case "$__os_name" in
+    Darwin*)
+        # macOS specific configuration
+        log_debug "Detected macOS system"
+        # Add macOS-specific settings here
+        ;;
+    Linux*)
+        # Linux specific configuration
+        log_debug "Detected Linux system"
+        # Add Linux-specific settings here
+        ;;
+    CYGWIN*|MINGW*|MSYS*)
+        # Windows specific configuration
+        log_debug "Detected Windows system"
+        # Add Windows-specific settings here
+        ;;
+    *)
+        log_warn "Unknown operating system: $__os_name"
+        ;;
+esac
+
+#--------------------------------------------#
 #-          Setup Remotes (Someday)         -#
 #--------------------------------------------#
 
+#--------------------------------------------#
+#-          Export Conan Settings           -#
+#--------------------------------------------#
 
 #  Bring in more utility functions
 eval "$(cat "$__dir_scripts/conan-utils.bash")"

@@ -80,13 +80,20 @@ It's recommended to use WSL2 on Windows. Follow the Ubuntu/Debian instructions o
 If you already have Conan installed and configured, you can skip this step. Otherwise, run the following command to set up Conan in a dedicated virtual environment:
 
 ```bash
-./setup-terminus.py
+./setup-terminus.py -p python3.14
 ```
 
+**Options:**
+- `-p <python_version>`: Specify Python version (default: `python3`)
+- `--venv-path <path>`: Custom virtual environment path (default: `${HOME}/conan`)
+- `--dry-run`: Show commands without executing them
+- `--skip-conan`: Skip Conan setup only
+- `-v`: Verbose output
+
 This script will:
-- Create a Python virtual environment in `${HOME}/conan`
-- Install the latest version of Conan
-- Add helper functions to your shell RC file
+- Create a Python virtual environment at `${HOME}/conan` using the specified Python version
+- Install the latest version of Conan in the virtual environment
+- Add the `go-conan` helper function to your shell RC file (if not already present)
 
 ### Step 2: Restart Your Shell
 
@@ -104,38 +111,28 @@ source ~/.bashrc
 
 ### Step 3: Activate Conan Environment
 
-After restarting your shell, you can activate the Conan environment using either method:
+After restarting your shell, you can activate the Conan environment using the helper command:
 
-1. **Using the helper command:**
-   ```bash
-   go-conan
-   ```
+```bash
+go-conan
+```
 
-2. **Manual activation:**
-   ```bash
-   source ${HOME}/conan/bin/activate
-   ```
+This will activate the virtual environment at `${HOME}/conan` and make the `conan` command available.
+
+**Alternative manual activation:**
+```bash
+source ${HOME}/conan/bin/activate
+```
 
 ### Step 4: Configure Conan Profile
 
-Conan requires a profile before you can start using it. Run the setup script to configure default settings:
-
-```bash
-conan-setup.bash
-```
-
-This will:
-- Update your shell RC files with necessary environment variables
-- Set up default Conan configuration
-- Configure the ConanCenter remote
-
-After running this, restart your shell again or source the RC file, then initialize your profile:
+Conan requires a profile before you can start using it. Initialize your profile:
 
 ```bash
 conan profile detect
 ```
 
-This creates a default profile using ConanCenter as the remote repository.
+This creates a default profile using ConanCenter as the remote repository. For advanced configuration, you can manually edit the profile at `~/.conan2/profiles/default`.
 
 ## Repository Management
 
@@ -162,21 +159,23 @@ The `tmns-clone-repos.py` script supports several options:
 The default profile includes the following repositories:
 
 **Core Libraries:**
-- `terminus-cmake` - CMake utilities and macros
-- `terminus-log` - Logging framework
-- `terminus-outcome` - Result handling utilities
-- `terminus-core` - Core C++ primitives
-- `terminus-math` - Mathematical library
-- `terminus-nitf` - NITF file format support
-- `terminus-image` - Image processing library
-- `terminus-astro` - Astro library
-- `terminus-platform-lib-cpp` - Platform C++ library
-- `terminus-toolbox` - Toolbox library
+- `terminus_cmake` - CMake utilities and macros
+- `terminus_log` - Logging framework
+- `terminus_outcome` - Result handling utilities
+- `terminus_core` - Core C++ primitives
+- `terminus_math` - Mathematical library
+- `terminus_ipc` - Inter-process communication library
+- `terminus_fcs` - Framework Configuration Service
+- `terminus_astro` - Astronomical calculations library
+- `terminus_nitf` - NITF file format support
+- `terminus_image` - Image processing library
+- `terminus_platform_lib_cpp` - Platform C++ library
+- `terminus_toolbox` - Terminus toolbox utilities
 
 **Applications and Tools:**
-- `terminus-cpp-demos` - C++ demonstration applications
-- `terminus-docs` - Documentation repository
-- `terminus-repo-utilities` - Repository management tools
+- `terminus_cpp_demos` - C++ demonstration applications
+- `terminus_docs` - Documentation repository
+- `terminus_setup` - Setup and configuration tools
 
 ## Building Terminus
 
@@ -267,4 +266,23 @@ For additional help:
 Current version: **1.0.0** (2026-01-11)
 
 See `changelog.md` for detailed version history and changes.
+
+## TODO
+
+### Future Enhancements
+
+- [ ] **OS-Specific Configurations**: Extend the OS detection framework in `conan-setup.bash` to include platform-specific settings:
+  - [ ] macOS: Configure Xcode toolchain paths
+  - [ ] Linux: Set distribution-specific package manager paths
+  - [ ] Windows: Configure Visual Studio environment
+  - [ ] Cross-platform: Handle different compiler configurations
+
+- [ ] **Profile Management**: Add profile backup and restore functionality
+- [ ] **Remote Configuration**: Implement custom Conan remote setup for enterprise environments
+- [ ] **Dependency Validation**: Add checks for required system dependencies before setup
+
+### Known Issues
+
+- [ ] GDAL and OpenCV must be installed via system package managers (not available through Conan)
+- [ ] Windows support requires WSL2 for full functionality
 
