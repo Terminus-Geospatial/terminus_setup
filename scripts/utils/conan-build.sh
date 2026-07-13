@@ -216,7 +216,6 @@ ${CMD}
 log_info '-------------------------------------'
 log_info 'Build Complete'
 log_info '-------------------------------------'
-exit 0
 
 #  After a successful compilation, automatically deploy the application if the
 #  Conan recipe defines a 'deploy()' function (unless the user explicitly says
