@@ -1,0 +1,12 @@
+title: Terminus Setup
+description: Documentation for the Terminus C++ development environment setup utilities.
+remote_theme: just-the-docs/just-the-docs
+plugins:
+  - jekyll-remote-theme
+baseurl: /terminus_setup
+url: https://Terminus-Geospatial.github.io
+permalink: pretty
+aux_links:
+  "Terminus Setup on GitHub":
+    - "https://github.com/Terminus-Geospatial/terminus_setup"
+footer_content: "Copyright &copy; 2024 Terminus LLC. Distributed under the MIT License."

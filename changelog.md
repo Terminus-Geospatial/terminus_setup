@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
+## [1.0.2] - 2026-07-12
+
+### Added
+- GitHub Pages documentation site under `docs/`.
+- GitHub Actions workflow to deploy the Jekyll site to Pages.
+- Setup, repositories, building, utilities, and troubleshooting documentation pages.
+
+### Changed
+- README now links to the live GitHub Pages documentation and no longer includes the full repository structure.
+- Setup instructions use `python3` and `brew install python` instead of hardcoded Python versions.
+
+### Fixed
+- Removed a premature `exit 0` in `scripts/utils/conan-build.sh` so the deployment block can run.
+
 ## [1.0.1] - 2026-01-18
 
 ### Added

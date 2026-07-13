@@ -48,7 +48,7 @@ def parse_command_line():
     parser.add_argument( '--venv-path',
                          dest = 'venv_path',
                          default = DEFAULT_VENV_PATH,
-                         help = 'Where to install Python VENV' )
+                         help = f'Where to install Python VENV (default: {DEFAULT_VENV_PATH})' )
 
     parser.add_argument( '-o',
                          '--create-if-exists',
