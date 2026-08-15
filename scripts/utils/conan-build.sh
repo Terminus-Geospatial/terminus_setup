@@ -117,16 +117,24 @@ while [ $# -gt 0 ]; do
     shift
 done
 
+#  Quick Sanity check to make sure conan is on the path.  If that fails, exit the script
+if ! command -v conan &> /dev/null; then
+    log_error "conan was not found on path. Please install conan or setup the go-conan alias."
+    exit 1
+fi
+
+#  Quick sanity check to make sure there is a `conanfile.py` file within the directory.  This prevents it from
+#  failing, but still creating a build folder, which we have to delete later
+if [ ! -f "${PWD}/conanfile.py" ]; then
+    log_error "No conanfile.py found in ${PWD}.  Make sure you are in a folder with a conanfile.py file to actually build."
+    exit 1
+fi
+
 #------------------------------------#
 #-          Setup the build         -#
 #------------------------------------#
 if [ -z "${source_root}" ]; then
     source_root="$(pwd)"
-fi
-
-if [ ! -f "${source_root}/conanfile.py" ]; then
-    log_info "No conanfile.py found in ${source_root}. Skipping Conan build."
-    exit 0
 fi
 
 if [ -z "${build_root}" ]; then
@@ -196,11 +204,11 @@ conanfile='conanfile.py'
 log_info '-------------------------------------'
 log_info "Running Conan Install (Build-Type: ${build_type})"
 log_info '-------------------------------------'
-CMD="conan install ${conanfile} ${build_missing} --output-folder build -s build_type=${build_type} ${options[@]}"
+CMD="conan install ${conanfile} ${build_missing} --output-folder ${build_root} -s build_type=${build_type} ${options[@]}"
 echo "${CMD}"
 $CMD
 
-CMD="conan build ${build_missing} --output-folder build -s build_type=${build_type} ${options[@]} conanfile.py"
+CMD="conan build ${build_missing} --output-folder ${build_root} -s build_type=${build_type} ${options[@]} conanfile.py"
 echo ${CMD}
 ${CMD}
 
@@ -209,7 +217,7 @@ log_info '-------------------------------------'
 log_info 'Calling export package'
 log_info '-------------------------------------'
 
-CMD="conan export-pkg --output-folder build -s build_type=${build_type} ${conanfile}"
+CMD="conan export-pkg --output-folder ${build_root} -s build_type=${build_type} ${conanfile}"
 echo ${CMD}
 ${CMD}
 

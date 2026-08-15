@@ -39,12 +39,6 @@ The documentation source lives in the `docs/` folder. The rendered pages are:
 - [Utility Scripts](https://Terminus-Geospatial.github.io/terminus_setup/utilities/)
 - [Troubleshooting](https://Terminus-Geospatial.github.io/terminus_setup/troubleshooting/)
 
-## Version Information
-
-Current version: **1.0.2** (2026-07-12)
-
-See `changelog.md` for detailed version history and changes.
-
 ## TODO
 
 ### Future Enhancements
@@ -56,7 +50,6 @@ See `changelog.md` for detailed version history and changes.
   - [ ] Cross-platform: Handle different compiler configurations
 
 - [ ] **Profile Management**: Add profile backup and restore functionality
-- [ ] **Remote Configuration**: Implement custom Conan remote setup for enterprise environments
 - [ ] **Dependency Validation**: Add checks for required system dependencies before setup
 
 ### Known Issues

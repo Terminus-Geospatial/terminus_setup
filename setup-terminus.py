@@ -255,6 +255,10 @@ def update_shell_scripts( logger, venv_path, dry_run ):
                 cmd  = f'\necho "# This function added by Terminus setup-conan script." >> {shell_rc}\n'
                 cmd += f'echo "function go-conan() {{" >> {shell_rc}\n'
                 cmd += f"echo '    . {venv_path}/bin/activate' >> {shell_rc}\n"
+
+                cmd += f"echo '    #  Only perform if using WSL behind a firewall' >> {shell_rc}\n"
+                cmd += f"echo '    #export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt' >> {shell_rc}\n"
+                cmd += f"echo '    #export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt' >> {shell_rc}\n"
                 cmd += f"echo '}}' >> {shell_rc}"
                 run_command( logger, cmd, 'adding conan alias', dry_run )
 

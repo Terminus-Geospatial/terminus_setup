@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
+## [1.0.3] - 2026-08-14
+
+### Added
+
+- `conan-setup.bash` now configures Conan remotes listed in the `conan_setup_repos` associative array.
+- `conan-setup.cfg` defines the default `terminus-conan` remote at `http://rpi5:9300`.
+- Users can override the Terminus Conan server URL by creating `~/.conan-setup.cfg` with a custom `conan_setup_repos` entry.
+
+### Changed
+
+- `conan-build.sh` now validates that `conan` is on the path and that a `conanfile.py` exists in the current directory before running.
+- `conan-build.sh` now uses `${build_root}` as the `--output-folder` for `conan install`, `conan build`, and `conan export-pkg` instead of hardcoded `build`.
+- `setup-terminus.py` adds commented-out `REQUESTS_CA_BUNDLE` and `SSL_CERT_FILE` exports to the generated `go-conan` function for WSL environments behind a firewall.
+
 ## [1.0.2] - 2026-07-12
 
 ### Added

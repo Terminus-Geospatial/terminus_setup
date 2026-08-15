@@ -272,8 +272,21 @@ case "$__os_name" in
 esac
 
 #--------------------------------------------#
-#-          Setup Remotes (Someday)         -#
+#-          Setup Remotes                   -#
 #--------------------------------------------#
+
+if [ ${#conan_setup_repos[@]} -gt 0 ]; then
+    log_info '------------------------------------------'
+    log_info ' Configuring Conan remotes'
+    log_info '------------------------------------------'
+
+    for __remote_name in "${!conan_setup_repos[@]}"; do
+        __remote_url="${conan_setup_repos[${__remote_name}]}"
+        log_info "Ensuring remote '${__remote_name}' -> ${__remote_url}"
+        conan remote add -f "${__remote_name}" "${__remote_url}" \
+            || log_warn "Could not add remote '${__remote_name}'"
+    done
+fi
 
 #--------------------------------------------#
 #-          Export Conan Settings           -#
