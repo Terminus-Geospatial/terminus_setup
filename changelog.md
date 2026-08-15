@@ -14,9 +14,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- `setup-terminus.py` now runs `conan-setup.bash` as the final setup step, so new installs automatically get a Conan profile and the configured remotes.
 - `conan-build.sh` now validates that `conan` is on the path and that a `conanfile.py` exists in the current directory before running.
 - `conan-build.sh` now uses `${build_root}` as the `--output-folder` for `conan install`, `conan build`, and `conan export-pkg` instead of hardcoded `build`.
 - `setup-terminus.py` adds commented-out `REQUESTS_CA_BUNDLE` and `SSL_CERT_FILE` exports to the generated `go-conan` function for WSL environments behind a firewall.
+- Updated `docs/setup.md` and `docs/utilities.md` to document automatic Conan profile/remote configuration.
 
 ## [1.0.2] - 2026-07-12
 

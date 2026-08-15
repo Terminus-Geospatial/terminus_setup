@@ -232,6 +232,16 @@ def run_conan_setup( logger, python_path, venv_path, dry_run ):
     # Add go-conan alias to shell
     update_shell_scripts( logger, venv_path, dry_run )
 
+    # Configure Conan profile and remotes from conan-setup.cfg
+    conan_setup_script = os.path.join(
+        os.path.dirname( os.path.abspath( __file__ ) ),
+        'scripts',
+        'utils',
+        'conan-setup.bash' )
+
+    cmd = f'. {venv_path}/bin/activate && bash {conan_setup_script}'
+    run_command( logger, cmd, 'configuring conan profile and remotes', dry_run )
+
 def update_shell_scripts( logger, venv_path, dry_run ):
 
     #  Iterate over available scripts

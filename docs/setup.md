@@ -80,6 +80,7 @@ The script performs the following:
 2. Creates a Python virtual environment at the configured path.
 3. Installs the latest Conan release into the virtual environment.
 4. Adds the `go-conan` helper function to your shell RC file.
+5. Runs `conan-setup.bash` to detect/create a default Conan profile and configure remotes from `conan-setup.cfg` / `~/.conan-setup.cfg`.
 
 ## Activate the Conan environment
 
@@ -104,10 +105,12 @@ source ${HOME}/conan/bin/activate
 
 ## Configure Conan profile
 
-Create a default Conan profile:
+`setup-terminus.py` already runs `conan-setup.bash`, which detects/creates a default Conan profile and adds the remotes defined in `scripts/utils/conan-setup.cfg` (overridable via `~/.conan-setup.cfg`).
+
+To re-run the Conan configuration manually from the repo:
 
 ```bash
-conan profile detect
+bash scripts/utils/conan-setup.bash
 ```
 
 This creates a default profile at `~/.conan2/profiles/default`. For advanced configuration, edit that file directly.

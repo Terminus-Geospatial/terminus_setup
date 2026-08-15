@@ -51,11 +51,14 @@ Bash helper functions used by the other Conan scripts:
 
 ### `conan-setup.cfg`
 
-Default configuration file for `conan-setup.bash`. Currently defines the Conan profile to use:
+Default configuration file for `conan-setup.bash`. Defines the Conan profile and default remotes to configure:
 
 ```bash
 conan_setup_profile="default"
+conan_setup_repos["terminus-conan"]="http://rpi5:9300"
 ```
+
+Override these values by creating `~/.conan-setup.cfg`.
 
 ## Python helper scripts (`scripts/utils/`)
 
