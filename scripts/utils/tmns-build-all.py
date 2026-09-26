@@ -33,6 +33,9 @@ DEFAULT_REPO_LIST = ['terminus-cmake',
                      'terminus-math',
                      'terminus-nitf',
                      'terminus-image',
+                     'terminus-fcs',
+                     'terminus-conan',
+                     'terminus-atlas',
                      'terminus-cpp-demos']
 
 class TerminusRepo:

@@ -1,0 +1,47 @@
+############################# INTELLECTUAL PROPERTY RIGHTS #############################
+##                                                                                    ##
+##                           Copyright (c) 2024 Terminus LLC                          ##
+##                                All Rights Reserved.                                ##
+##                                                                                    ##
+##          Use of this source code is governed by LICENSE in the repo root.          ##
+##                                                                                    ##
+############################# INTELLECTUAL PROPERTY RIGHTS #############################
+#
+#    File:    Dockerfile.runtime
+#    Author:  Marvin Smith
+#    Date:    8/14/2026
+#
+#    Purpose:  CentOS Stream 10 runtime base for Terminus C++ applications.
+#              CentOS Stream 10 is used (instead of UBI) because it ships
+#              CRB/AppStream by default, which is required for runtime
+#              libraries such as libva and libdrm used by ffmpeg VAAPI
+#              hardware-acceleration options.
+#
+
+FROM quay.io/centos/centos:stream10
+
+LABEL maintainer="Marvin Smith <marvin.smith@terminus-geo.com>" \
+      description="CentOS Stream 10 runtime base for Terminus C++ applications" \
+      version="1.0.0"
+
+# Install runtime dependencies.
+# Adjust package names as needed for the final RHEL 10 release.
+RUN dnf install -y --setopt install_weak_deps=0 \
+        ca-certificates \
+        glibc \
+        libstdc++ \
+        libatomic \
+        libdrm \
+        libva \
+        zlib && \
+    dnf clean all && \
+    rm -rf /var/cache/yum /var/cache/dnf
+
+# Library search path for Conan-deployed shared libraries.
+ENV LD_LIBRARY_PATH=/opt/terminus/lib
+
+# Runtime working directory.
+WORKDIR /opt/terminus
+
+# Default to a shell.
+CMD ["/bin/bash"]

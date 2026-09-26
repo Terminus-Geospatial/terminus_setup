@@ -51,6 +51,7 @@ The documentation source lives in the `docs/` folder. The rendered pages are:
 
 - [ ] **Profile Management**: Add profile backup and restore functionality
 - [ ] **Dependency Validation**: Add checks for required system dependencies before setup
+- [ ] **Container Credential Helper**: Add a shell helper that injects Conan remote credentials from an env-file or environment variables so Docker build/push images do not hard-code passwords.
 
 ### Known Issues
 

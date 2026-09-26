@@ -242,6 +242,39 @@ def run_conan_setup( logger, python_path, venv_path, dry_run ):
     cmd = f'. {venv_path}/bin/activate && bash {conan_setup_script}'
     run_command( logger, cmd, 'configuring conan profile and remotes', dry_run )
 
+def create_docker_env_file( logger, dry_run ):
+
+    home_dir = os.environ.get( "HOME" )
+    if home_dir is None:
+        logger.error( 'HOME environment variable is not set. Skipping docker env file.' )
+        return
+
+    terminus_config_dir = os.path.join( home_dir, '.terminus' )
+    docker_env_path = os.path.join( terminus_config_dir, 'docker.env' )
+
+    if os.path.exists( docker_env_path ):
+        logger.info( f'Docker environment file already exists: {docker_env_path}' )
+        return
+
+    if dry_run:
+        logger.info( f'Would create {docker_env_path} with default Docker build credentials.' )
+        return
+
+    logger.info( f'Creating default Docker environment file: {docker_env_path}' )
+    os.makedirs( terminus_config_dir, exist_ok = True )
+
+    default_content = """# Credentials used by tmns-docker-build.
+# Modify these values with the correct Conan remote login before building.
+CONAN_REMOTE=terminus-conan
+CONAN_LOGIN_USERNAME=demo
+CONAN_PASSWORD=demo
+"""
+
+    with open( docker_env_path, 'w' ) as fout:
+        fout.write( default_content )
+
+    logger.warning( f'Default Docker credentials written. Remember to update CONAN_PASSWORD in {docker_env_path} before uploading packages.' )
+
 def update_shell_scripts( logger, venv_path, dry_run ):
 
     #  Iterate over available scripts
@@ -297,6 +330,9 @@ def main():
                          cmd_args.python_path,
                          cmd_args.venv_path,
                          cmd_args.dry_run )
+
+    # Create a default env file for tmns-docker-build credentials.
+    create_docker_env_file( logger, cmd_args.dry_run )
 
 if __name__ == '__main__':
     main()

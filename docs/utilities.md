@@ -41,6 +41,36 @@ Builds a single Conan project. See [Building]({% link building.md %}) for option
 
 Deploys a Conan package to a local installation directory. See [Building]({% link building.md %}) for options and examples.
 
+### `tmns-docker-build`
+
+Runs a disposable container from the standard `terminus-build-centos10` image to build, test, and optionally upload a Terminus package. Unlike the `Dockerfile` approach, this script does not create a new image; it mounts the current repository into the container, runs the build, and removes the container when finished. Useful for CI/GitHub Actions.
+
+Credentials are read from an env file (default: `~/.terminus/docker.env`) and passed to the container with `docker run --env-file`, so passwords do not appear on the command line.
+
+```bash
+# Create a credential env file
+mkdir -p ~/.terminus
+cat > ~/.terminus/docker.env << EOF
+CONAN_REMOTE=terminus-conan
+CONAN_LOGIN_USERNAME=demo
+CONAN_PASSWORD=demo
+EOF
+
+# Run the build
+cd /path/to/terminus_outcome
+tmns-docker-build -a -c -B
+```
+
+| Option | Description |
+|--------|-------------|
+| `-a, --all-configs` | Build both Debug and Release, test Release, then upload (default) |
+| `-d, --debug` | Build only Debug |
+| `-r, --release` | Build only Release |
+| `-c, --clean` | Clean the build directory before building |
+| `-B, --build-missing` | Build missing Conan dependencies from source |
+| `-n, --no-upload` | Build and test, but do not upload |
+| `-e, --env-file PATH` | Env file with Conan credentials (default: `~/.terminus/docker.env`) |
+
 ### `conan-utils.bash`
 
 Bash helper functions used by the other Conan scripts:

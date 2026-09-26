@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
+## [1.0.5] - 2026-08-15
+
+### Added
+
+- Added `--upload-deps` (`-u`) flag to `tmns-docker-build` to upload all built packages, including Conan dependencies, to the configured remote.
+
+
+## [1.0.4] - 2026-08-14
+
+### Added
+
+- Added `docker/Dockerfile.runtime`: minimal RHEL 10 UBI base image for running Terminus C++ applications.
+- Added `docker/Dockerfile.build`: build image extending `terminus-runtime` with GCC, CMake, Python, Conan, and the Terminus build scripts.
+- Added `docker/build-images.sh` helper to build the runtime and build images.
+- Added `docker/README.md` with build and usage instructions.
+- Added `scripts/utils/tmns-docker-build` for running disposable containerized builds without creating a new image.
+
+
 ## [1.0.3] - 2026-08-14
 
 ### Added

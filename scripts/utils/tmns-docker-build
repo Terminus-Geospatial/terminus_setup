@@ -1,0 +1,268 @@
+#!/usr/bin/env bash
+#
+############################# INTELLECTUAL PROPERTY RIGHTS ############################
+##                                                                                    ##
+##                           Copyright (c) 2024 Terminus LLC                          ##
+##                                All Rights Reserved.                                ##
+##                                                                                    ##
+##          Use of this source code is governed by LICENSE in the repo root.          ##
+##                                                                                    ##
+############################# INTELLECTUAL PROPERTY RIGHTS ############################
+#
+#    File:    tmns-docker-build
+#    Author:  Marvin Smith
+#    Date:    8/14/2026
+#
+#    Purpose:  Run a Terminus Conan build, test, and optional upload inside the
+#              standard terminus-build Docker image.
+#
+#              This script is meant for CI/GitHub Actions. It does not create a
+#              new Docker image; it runs a disposable container from
+#              terminus-build-centos10:latest and removes it when finished.
+#
+#              Credentials are read from an env-file (default: ~/.terminus/docker.env)
+#              and passed to the container with `docker run --env-file`. No
+#              passwords end up in the `docker run` command line.
+#
+
+set -euo pipefail
+
+# Global constants
+readonly SCRIPT_NAME="$(basename "${BASH_SOURCE[0]}")"
+readonly DEFAULT_BUILD_IMAGE="terminus-build-centos10:latest"
+
+# User-configurable options
+build_all=false
+build_release=false
+build_debug=false
+clean_build=false
+build_missing=false
+upload=true
+upload_deps=false
+env_file=""
+
+function usage() {
+    cat << EOF
+Usage: ${SCRIPT_NAME} [OPTIONS]
+
+Run a Terminus Conan build inside the standard ${TERMINUS_BUILD_IMAGE:-${DEFAULT_BUILD_IMAGE}} container.
+
+Options:
+  -a, --all-configs    Build both Debug and Release, test Release, then upload both (default).
+  -d, --debug          Build only Debug.
+  -r, --release        Build only Release.
+  -c, --clean          Clean the build directory before building.
+  -B, --build-missing  Build missing Conan dependencies from source.
+  -u, --upload-deps    Upload all built packages (including dependencies) to the Conan remote.
+  -n, --no-upload      Build and test, but do not upload to the Conan remote.
+  -e, --env-file PATH  Env file with Conan credentials (default: ~/.terminus/docker.env).
+  -h, --help           Show this help message.
+
+Environment (can also be placed in the env file):
+  CONAN_REMOTE         Conan remote name (default: terminus-conan).
+  CONAN_LOGIN_USERNAME Conan remote login username (default: demo).
+  CONAN_PASSWORD       Conan remote login password (required for upload).
+  TERMINUS_BUILD_IMAGE Docker image to use (default: terminus-build-centos10:latest).
+
+EOF
+}
+
+function log_info() {
+    echo "[INFO] $*" >&2
+}
+
+function log_error() {
+    echo "[ERROR] $*" >&2
+}
+
+function parse_command_line() {
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -a | --all-configs)
+                build_all=true
+                ;;
+            -d | --debug)
+                build_debug=true
+                ;;
+            -r | --release)
+                build_release=true
+                ;;
+            -c | --clean)
+                clean_build=true
+                ;;
+            -B | --build-missing)
+                build_missing=true
+                ;;
+            -u | --upload-deps)
+                upload_deps=true
+                ;;
+            -n | --no-upload)
+                upload=false
+                ;;
+            -e | --env-file)
+                if [[ -n "${2:-}" ]]; then
+                    env_file="$2"
+                    shift
+                else
+                    log_error "${1} requires a path argument."
+                    usage
+                    exit 1
+                fi
+                ;;
+            -h | --help)
+                usage
+                exit 0
+                ;;
+            *)
+                log_error "Unknown option: $1"
+                usage
+                exit 1
+                ;;
+        esac
+        shift
+    done
+}
+
+function get_conan_password() {
+    local password
+    password=""
+
+    if [[ -n "${CONAN_PASSWORD:-}" ]]; then
+        password="${CONAN_PASSWORD}"
+    elif [[ -f "${env_file}" ]]; then
+        # shellcheck disable=SC2310
+        password="$(grep -E '^CONAN_PASSWORD=' "${env_file}" | cut -d= -f2- | head -n1)" || true
+    fi
+
+    echo "${password}"
+}
+
+function validate_environment() {
+    if ! command -v docker >/dev/null 2>&1; then
+        log_error "docker is not installed or not in PATH."
+        exit 1
+    fi
+
+    if ${upload}; then
+        local conan_password
+        conan_password="$(get_conan_password)"
+
+        if [[ -z "${conan_password}" ]]; then
+            log_error "CONAN_PASSWORD is required for upload. Use -n to skip upload or set it in ${env_file}."
+            exit 1
+        fi
+    fi
+}
+
+function build_command_flags() {
+    local flags=()
+
+    if ${clean_build}; then
+        flags+=("-c")
+    fi
+
+    if ${build_missing}; then
+        flags+=("-B")
+    fi
+
+    echo "${flags[*]}"
+}
+
+function prepare_env_file() {
+    local temp_env
+    temp_env="$(mktemp /tmp/tmns-docker-build.XXXXXX)"
+
+    # 1. Defaults (lowest precedence)
+    {
+        echo "CONAN_REMOTE=terminus-conan"
+        echo "CONAN_LOGIN_USERNAME=demo"
+        echo "TERMINUS_BUILD_IMAGE=${TERMINUS_BUILD_IMAGE:-${DEFAULT_BUILD_IMAGE}}"
+    } >> "${temp_env}"
+
+    # 2. User env file (middle precedence)
+    if [[ -f "${env_file}" ]]; then
+        grep -vE '^(\s*#|\s*$)' "${env_file}" >> "${temp_env}" || true
+    fi
+
+    # 3. Current shell environment (highest precedence)
+    {
+        [[ -n "${CONAN_REMOTE:-}" ]] && echo "CONAN_REMOTE=${CONAN_REMOTE}"
+        [[ -n "${CONAN_LOGIN_USERNAME:-}" ]] && echo "CONAN_LOGIN_USERNAME=${CONAN_LOGIN_USERNAME}"
+        [[ -n "${CONAN_PASSWORD:-}" ]] && echo "CONAN_PASSWORD=${CONAN_PASSWORD}"
+        [[ -n "${TERMINUS_BUILD_IMAGE:-}" ]] && echo "TERMINUS_BUILD_IMAGE=${TERMINUS_BUILD_IMAGE}"
+    } >> "${temp_env}"
+
+    echo "${temp_env}"
+}
+
+function run_docker_build() {
+    local repo_dir
+    repo_dir="$(pwd)"
+
+    local build_image
+    build_image="${TERMINUS_BUILD_IMAGE:-${DEFAULT_BUILD_IMAGE}}"
+
+    local conan_flags
+    conan_flags="$(build_command_flags)"
+
+    local build_steps
+    build_steps=""
+
+    if ${build_all}; then
+        build_steps+="conan-build.sh ${conan_flags}; "
+        build_steps+="conan-build.sh -r ${conan_flags}; "
+    elif ${build_debug}; then
+        build_steps+="conan-build.sh ${conan_flags}; "
+    else
+        build_steps+="conan-build.sh -r ${conan_flags}; "
+    fi
+
+    build_steps+="cd build && ctest --output-on-failure; "
+
+    if ${upload}; then
+        if ${upload_deps}; then
+            build_steps+="conan upload \"*\" -r \"\${CONAN_REMOTE}\" -c"
+        else
+            build_steps+="pkg_name=\"\$(conan inspect .. | grep '^name:' | awk '{print \$2}')\"; "
+            build_steps+="pkg_version=\"\$(conan inspect .. | grep '^version:' | awk '{print \$2}')\"; "
+            build_steps+="conan upload \"\${pkg_name}/\${pkg_version}\" -r \"\${CONAN_REMOTE}\" -c"
+        fi
+    fi
+
+    local temp_env
+    temp_env="$(prepare_env_file)"
+
+    # Ensure the temp file is removed when this script exits.
+    # shellcheck disable=SC2064
+    trap "rm -f '${temp_env}'" EXIT
+
+    log_info "Running build in ${build_image} for ${repo_dir}"
+
+    docker run --rm \
+        --env-file "${temp_env}" \
+        -v "${repo_dir}:/src" \
+        -w "/src" \
+        "${build_image}" \
+        bash -c "set -e; ${build_steps}"
+}
+
+function main() {
+    parse_command_line "$@"
+
+    # Default env file if not provided.
+    if [[ -z "${env_file}" ]]; then
+        env_file="${HOME}/.terminus/docker.env"
+    fi
+
+    # Default to all configs if no build type is specified
+    if ! ${build_all} && ! ${build_debug} && ! ${build_release}; then
+        build_all=true
+    fi
+
+    validate_environment
+    run_docker_build
+}
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
+fi

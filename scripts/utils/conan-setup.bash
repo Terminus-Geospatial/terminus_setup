@@ -242,6 +242,40 @@ else
     conan profile detect
 fi
 
+# Terminus projects require a modern C++ standard. conan profile detect uses the
+# compiler's default (e.g. gnu17 for GCC 14), so make sure the profile is
+# corrected regardless of whether the profile was just created or reused.
+readonly __conan_cppstd="${conan_setup_cppstd:-23}"
+readonly __conan_profile="${HOME}/.conan2/profiles/default"
+
+if [ -f "${__conan_profile}" ]; then
+    if grep -q '^compiler.cppstd=' "${__conan_profile}"; then
+        sed "s/^compiler.cppstd=.*/compiler.cppstd=${__conan_cppstd}/" "${__conan_profile}" > "${__conan_profile}.tmp"
+    else
+        awk '/^\[settings\]/{print; print "compiler.cppstd='"${__conan_cppstd}"'"; next} {print}' "${__conan_profile}" > "${__conan_profile}.tmp"
+    fi
+    mv "${__conan_profile}.tmp" "${__conan_profile}"
+    log_info "Ensured compiler.cppstd=${__conan_cppstd} in default Conan profile"
+
+    # Cap parallel build jobs to limit memory pressure during heavy C++ builds
+    # (e.g. protobuf, ffmpeg). The conf section is created/updated as needed.
+    readonly __conan_build_jobs="${conan_setup_build_jobs:-4}"
+    if grep -q '^\[conf\]' "${__conan_profile}"; then
+        if grep -q '^tools\.build:jobs=' "${__conan_profile}"; then
+            sed "s/^tools\.build:jobs=.*/tools.build:jobs=${__conan_build_jobs}/" "${__conan_profile}" > "${__conan_profile}.tmp"
+        else
+            awk '/^\[conf\]/{print; print "tools.build:jobs='"${__conan_build_jobs}"'"; next} {print}' "${__conan_profile}" > "${__conan_profile}.tmp"
+        fi
+    else
+        cat "${__conan_profile}" > "${__conan_profile}.tmp"
+        echo "" >> "${__conan_profile}.tmp"
+        echo "[conf]" >> "${__conan_profile}.tmp"
+        echo "tools.build:jobs=${__conan_build_jobs}" >> "${__conan_profile}.tmp"
+    fi
+    mv "${__conan_profile}.tmp" "${__conan_profile}"
+    log_info "Ensured tools.build:jobs=${__conan_build_jobs} in default Conan profile"
+fi
+
 #--------------------------------------------#
 #-          OS-Specific Configuration      -#
 #--------------------------------------------#
@@ -283,7 +317,9 @@ if [ ${#conan_setup_repos[@]} -gt 0 ]; then
     for __remote_name in "${!conan_setup_repos[@]}"; do
         __remote_url="${conan_setup_repos[${__remote_name}]}"
         log_info "Ensuring remote '${__remote_name}' -> ${__remote_url}"
-        conan remote add -f "${__remote_name}" "${__remote_url}" \
+        # Insert Terminus remotes at index 0 so vendored recipe versions take
+        # precedence over conancenter for the same name/version.
+        conan remote add -f --index 0 "${__remote_name}" "${__remote_url}" \
             || log_warn "Could not add remote '${__remote_name}'"
     done
 fi

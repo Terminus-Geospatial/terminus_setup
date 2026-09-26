@@ -1,0 +1,90 @@
+############################# INTELLECTUAL PROPERTY RIGHTS #############################
+##                                                                                    ##
+##                           Copyright (c) 2024 Terminus LLC                          ##
+##                                All Rights Reserved.                                ##
+##                                                                                    ##
+##          Use of this source code is governed by LICENSE in the repo root.          ##
+##                                                                                    ##
+############################# INTELLECTUAL PROPERTY RIGHTS #############################
+#
+#    File:    Dockerfile.build
+#    Author:  Marvin Smith
+#    Date:    8/14/2026
+#
+#    Purpose:  Build environment for Terminus C++ applications.
+#              Extends the terminus-runtime-centos10 image with compilers,
+#              CMake, Conan, and the Terminus build scripts.
+#
+#              Based on CentOS Stream 10 (via terminus-runtime-centos10) so
+#              that CRB is available for the libva/libdrm devel packages
+#              required by ffmpeg VAAPI hardware-acceleration options.
+#
+
+FROM terminus-runtime-centos10:latest
+
+LABEL maintainer="Marvin Smith <marvin.smith@terminus-geo.com>" \
+      description="Build environment for Terminus C++ applications" \
+      version="1.0.0"
+
+# Enable CRB for devel packages not present in the default AppStream repos
+# (e.g. libva-devel, libvdpau-devel).
+RUN dnf install -y --setopt install_weak_deps=0 dnf-plugins-core && \
+    dnf config-manager --set-enabled crb
+
+# Install build tools and development libraries.
+# Adjust package names as needed for the final RHEL 10 release.
+#
+# libva-devel provides the VAAPI headers.  libdrm-devel lets ffmpeg use
+# DRM/GBM device creation for VAAPI instead of the legacy X11 path, so the
+# entire X11/XCB stack is no longer required.
+RUN dnf install -y --setopt install_weak_deps=0 \
+        findutils \
+        gcc \
+        gcc-c++ \
+        libstdc++-devel \
+        libstdc++-static \
+        make \
+        cmake \
+        git \
+        python3 \
+        python3-pip \
+        perl \
+        perl-FindBin \
+        perl-File-Basename \
+        perl-File-Path \
+        perl-Getopt-Long \
+        perl-PathTools \
+        which \
+        wget \
+        gdb \
+        valgrind \
+        strace \
+        libva-devel \
+        libdrm-devel && \
+    dnf clean all && \
+    rm -rf /var/cache/yum /var/cache/dnf
+
+# Install Conan.
+RUN pip3 install --no-cache-dir conan
+
+# Copy the Terminus build scripts into the image.
+COPY scripts/utils /opt/terminus/scripts
+
+# Make scripts executable and symlink the most common ones onto PATH.
+RUN chmod -R +x /opt/terminus/scripts && \
+    ln -sf /opt/terminus/scripts/conan-build.sh     /usr/local/bin/conan-build.sh && \
+    ln -sf /opt/terminus/scripts/conan-setup.bash   /usr/local/bin/conan-setup.bash && \
+    ln -sf /opt/terminus/scripts/conan-deploy.sh    /usr/local/bin/conan-deploy.sh && \
+    ln -sf /opt/terminus/scripts/tmns-build-all.py  /usr/local/bin/tmns-build-all.py
+
+# Configure Conan profile and remotes from the bundled conan-setup.cfg.
+# This will fail if the configured remote is unreachable, but it leaves the
+# profile in place for the user to adjust.
+RUN bash /opt/terminus/scripts/conan-setup.bash || true
+
+ENV PATH="/opt/terminus/scripts:/usr/local/bin:${PATH}"
+
+# Default build working directory.
+WORKDIR /src
+
+CMD ["/bin/bash"]

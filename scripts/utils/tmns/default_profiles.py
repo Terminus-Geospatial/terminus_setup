@@ -26,6 +26,11 @@ DEFAULT_REPO_LIST = {
         'default_branch': 'main',
         'tags': ['tools'],
     },
+    'terminus_conan': {
+        'url': 'git@github.com:Terminus-Geospatial/terminus_conan.git',
+        'default_branch': 'main',
+        'tags': ['tools', 'conan'],
+    },
     'terminus_cmake': {
         'url': 'git@github.com:Terminus-Geospatial/terminus_cmake.git',
         'default_branch': 'main',
@@ -73,6 +78,11 @@ DEFAULT_REPO_LIST = {
     },
     'terminus_image': {
         'url': 'git@github.com:Terminus-Geospatial/terminus_image.git',
+        'default_branch': 'main',
+        'tags': ['tools', 'cpp'],
+    },
+    'terminus_atlas': {
+        'url': 'git@github.com:Terminus-Geospatial/terminus_atlas.git',
         'default_branch': 'main',
         'tags': ['tools', 'cpp'],
     },

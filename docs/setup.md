@@ -81,6 +81,7 @@ The script performs the following:
 3. Installs the latest Conan release into the virtual environment.
 4. Adds the `go-conan` helper function to your shell RC file.
 5. Runs `conan-setup.bash` to detect/create a default Conan profile and configure remotes from `conan-setup.cfg` / `~/.conan-setup.cfg`.
+6. Creates a default `~/.terminus/docker.env` file for `tmns-docker-build` credentials.
 
 ## Activate the Conan environment
 
@@ -114,6 +115,25 @@ bash scripts/utils/conan-setup.bash
 ```
 
 This creates a default profile at `~/.conan2/profiles/default`. For advanced configuration, edit that file directly.
+
+## Configure Docker build credentials
+
+If you plan to use `tmns-docker-build` for containerized builds, update the default credentials created at `~/.terminus/docker.env`:
+
+```bash
+# Edit the generated env file
+vim ~/.terminus/docker.env
+```
+
+Replace the placeholder values with the correct Conan remote login:
+
+```bash
+CONAN_REMOTE=terminus-conan
+CONAN_LOGIN_USERNAME=your-username
+CONAN_PASSWORD=your-password
+```
+
+This file is read by `tmns-docker-build` and passed to the container with `docker run --env-file`, so the password does not appear on the command line.
 
 ## Next steps
 
