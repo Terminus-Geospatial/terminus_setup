@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
+## [1.0.6] - 2026-10-26
+
+### Added
+
+- `conan-setup.cfg` now defines `conan_setup_options_common` and `conan_setup_options_linux`, the shared dependency option sets applied to the managed `[options]` section of the default Conan profile. Centralizing the options keeps every Terminus project resolving the same package IDs, so dependency binaries are reused ecosystem-wide instead of rebuilt per consumer. Linux-only recipe options (ffmpeg VAAPI/libdrm, pulseaudio/wayland off) are OS-guarded and skipped on other platforms.
+- `conan-setup.bash` regenerates the managed `[options]` section on each run: removing an option from the config removes it from the profile, preventing drift.
+- `docker/artifactory/` — a Docker Compose service definition for a self-hosted Conan remote (Artifactory), including `.env.example`, `compose.yaml`, and a `artifactory-service` wrapper.
+
+### Changed
+
+- `docs/setup.md` documents the shared dependency options, why they exist, and how to modify or override them (including `~/.conan-setup.cfg` user overrides).
+- `docker/README.md` updated.
+
 ## [1.0.5] - 2026-08-15
 
 ### Added

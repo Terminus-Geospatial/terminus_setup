@@ -135,6 +135,8 @@ fi
 
 log_info "Loading Conan setup configuration defaults"
 declare -A conan_setup_repos
+declare -a conan_setup_options_common=()
+declare -a conan_setup_options_linux=()
 eval "$(cat "$__config_path_default")"
 
 #  Check if user already has a file
@@ -259,7 +261,7 @@ if [ -f "${__conan_profile}" ]; then
 
     # Cap parallel build jobs to limit memory pressure during heavy C++ builds
     # (e.g. protobuf, ffmpeg). The conf section is created/updated as needed.
-    readonly __conan_build_jobs="${conan_setup_build_jobs:-4}"
+    readonly __conan_build_jobs="${conan_setup_build_jobs:-8}"
     if grep -q '^\[conf\]' "${__conan_profile}"; then
         if grep -q '^tools\.build:jobs=' "${__conan_profile}"; then
             sed "s/^tools\.build:jobs=.*/tools.build:jobs=${__conan_build_jobs}/" "${__conan_profile}" > "${__conan_profile}.tmp"
@@ -274,6 +276,49 @@ if [ -f "${__conan_profile}" ]; then
     fi
     mv "${__conan_profile}.tmp" "${__conan_profile}"
     log_info "Ensured tools.build:jobs=${__conan_build_jobs} in default Conan profile"
+
+    # Permit dependency projects with pre-3.5 policy declarations to configure
+    # under CMake 4 while their upstream build files are being modernized.
+    readonly __cmake_policy_minimum='{"CMAKE_POLICY_VERSION_MINIMUM": "3.5"}'
+    if grep -q '^tools\.cmake\.cmaketoolchain:extra_variables=' "${__conan_profile}"; then
+        sed "s|^tools\.cmake\.cmaketoolchain:extra_variables=.*|tools.cmake.cmaketoolchain:extra_variables=${__cmake_policy_minimum}|" "${__conan_profile}" > "${__conan_profile}.tmp"
+    else
+        awk '/^\[conf\]/{print; print "tools.cmake.cmaketoolchain:extra_variables='"${__cmake_policy_minimum}"'"; next} {print}' "${__conan_profile}" > "${__conan_profile}.tmp"
+    fi
+    mv "${__conan_profile}.tmp" "${__conan_profile}"
+    log_info "Ensured CMAKE_POLICY_VERSION_MINIMUM=3.5 in default Conan profile"
+
+    # Managed dependency [options] section.  The option list lives in
+    # conan-setup.cfg (conan_setup_options_common / conan_setup_options_linux)
+    # so every Terminus project resolves identical package IDs and reuses the
+    # same binaries.  The section is regenerated on each run, which means
+    # removing an option from the config also removes it from the profile.
+    __profile_options=()
+    if [ ${#conan_setup_options_common[@]} -gt 0 ]; then
+        __profile_options+=("${conan_setup_options_common[@]}")
+    fi
+    # Linux-only recipe options (e.g. ffmpeg with_vaapi, opencv with_wayland)
+    # do not exist on other platforms, so they must only be applied on Linux.
+    if [ "$(uname -s)" == "Linux" ] && [ ${#conan_setup_options_linux[@]} -gt 0 ]; then
+        __profile_options+=("${conan_setup_options_linux[@]}")
+    fi
+    if [ ${#__profile_options[@]} -gt 0 ]; then
+        # Strip any existing [options] section (from its header through the
+        # next section header or end of file), then append the managed block.
+        awk '/^\[options\]/{skip=1; next} /^\[/{skip=0} !skip{print}' \
+            "${__conan_profile}" > "${__conan_profile}.tmp"
+        {
+            echo ""
+            echo "# Managed by conan-setup.bash - edit conan-setup.cfg, not this section"
+            echo "[options]"
+            for __opt in "${__profile_options[@]}"; do
+                echo "${__opt}"
+            done
+        } >> "${__conan_profile}.tmp"
+        mv "${__conan_profile}.tmp" "${__conan_profile}"
+        log_info "Ensured ${#__profile_options[@]} dependency options in default Conan profile"
+    fi
+
 fi
 
 #--------------------------------------------#
@@ -309,7 +354,14 @@ esac
 #-          Setup Remotes                   -#
 #--------------------------------------------#
 
-if [ ${#conan_setup_repos[@]} -gt 0 ]; then
+if [ "${conan_setup_skip_remotes:-false}" == "true" ]; then
+    log_info '------------------------------------------'
+    log_info ' Skipping remote configuration (conan_setup_skip_remotes=true)'
+    log_info '------------------------------------------'
+    for __remote_name in "${!conan_setup_repos[@]}"; do
+        conan remote disable "${__remote_name}" 2>/dev/null || true
+    done
+elif [ ${#conan_setup_repos[@]} -gt 0 ]; then
     log_info '------------------------------------------'
     log_info ' Configuring Conan remotes'
     log_info '------------------------------------------'

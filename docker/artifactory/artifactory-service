@@ -1,0 +1,200 @@
+#!/usr/bin/env bash
+#
+############################# INTELLECTUAL PROPERTY RIGHTS #############################
+##                                                                                    ##
+##                           Copyright (c) 2026 Terminus LLC                          ##
+##                                All Rights Reserved.                                ##
+##                                                                                    ##
+##          Use of this source code is governed by LICENSE in the repo root.          ##
+##                                                                                    ##
+############################# INTELLECTUAL PROPERTY RIGHTS #############################
+#
+#    File:    artifactory-service
+#    Author:  Marvin Smith
+#    Date:    9/27/2026
+#
+#    Purpose: Manage the laptop-local Terminus Artifactory service.
+
+set -euo pipefail
+
+readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly COMPOSE_FILE="${SCRIPT_DIR}/compose.yaml"
+readonly ENV_FILE="${SCRIPT_DIR}/.env"
+
+function load_environment() {
+    if [[ -f "${ENV_FILE}" ]]; then
+        set -a
+        # shellcheck source=/dev/null
+        source "${ENV_FILE}"
+        set +a
+    fi
+
+    export ARTIFACTORY_IMAGE="${ARTIFACTORY_IMAGE:-releases-docker.jfrog.io/jfrog/artifactory-cpp-ce:7.63.12}"
+    export ARTIFACTORY_CONTAINER_NAME="${ARTIFACTORY_CONTAINER_NAME:-terminus-artifactory}"
+    export ARTIFACTORY_DATA_DIR="${ARTIFACTORY_DATA_DIR:-${HOME}/.terminus/artifactory/var}"
+    export ARTIFACTORY_PORT="${ARTIFACTORY_PORT:-8081}"
+    export ARTIFACTORY_ROUTER_PORT="${ARTIFACTORY_ROUTER_PORT:-8082}"
+    export ARTIFACTORY_CONAN_REPOSITORY="${ARTIFACTORY_CONAN_REPOSITORY:-conan-local}"
+    export ARTIFACTORY_CONAN_REMOTE="${ARTIFACTORY_CONAN_REMOTE:-terminus-local}"
+}
+
+function require_command() {
+    local command_name="$1"
+    if ! command -v "${command_name}" >/dev/null 2>&1; then
+        echo "Required command not found: ${command_name}" >&2
+        exit 1
+    fi
+}
+
+function require_docker() {
+    require_command docker
+    if ! docker info >/dev/null 2>&1; then
+        echo "Docker is not running or is not accessible." >&2
+        exit 1
+    fi
+}
+
+function compose() {
+    docker compose --project-name terminus-artifactory --file "${COMPOSE_FILE}" "$@"
+}
+
+function start_service() {
+    require_docker
+    mkdir -p "${ARTIFACTORY_DATA_DIR}"
+    compose up --detach
+
+    echo "Artifactory is starting. Initial startup can take several minutes."
+    echo "Web UI:    http://localhost:${ARTIFACTORY_ROUTER_PORT}"
+    echo "Conan API: http://localhost:${ARTIFACTORY_PORT}/artifactory/api/conan/${ARTIFACTORY_CONAN_REPOSITORY}"
+    echo "Data:      ${ARTIFACTORY_DATA_DIR}"
+}
+
+function stop_service() {
+    require_docker
+    compose down
+    echo "Artifactory stopped. Persistent data remains at ${ARTIFACTORY_DATA_DIR}."
+}
+
+function show_status() {
+    require_command curl
+    require_docker
+    compose ps
+
+    local health_url="http://localhost:${ARTIFACTORY_ROUTER_PORT}/router/api/v1/system/health"
+    if curl --fail --silent --show-error "${health_url}"; then
+        echo
+        echo "Artifactory is ready at http://localhost:${ARTIFACTORY_ROUTER_PORT}."
+    else
+        echo
+        echo "Artifactory is not ready. Run '$(basename "${BASH_SOURCE[0]}") logs' for details." >&2
+        exit 1
+    fi
+}
+
+function show_logs() {
+    require_docker
+    compose logs --follow --tail 200 artifactory
+}
+
+function configure_conan() {
+    require_command conan
+    if [[ "$#" -gt 1 ]]; then
+        echo "Usage: $(basename "${BASH_SOURCE[0]}") configure-conan [username]" >&2
+        exit 2
+    fi
+
+    local remote_url="http://localhost:${ARTIFACTORY_PORT}/artifactory/api/conan/${ARTIFACTORY_CONAN_REPOSITORY}"
+    conan remote add "${ARTIFACTORY_CONAN_REMOTE}" "${remote_url}" --force
+
+    if [[ "$#" -eq 1 ]]; then
+        conan remote login "${ARTIFACTORY_CONAN_REMOTE}" "$1"
+    fi
+
+    conan remote list
+}
+
+function create_backup() {
+    require_command docker
+    require_command tar
+
+    if docker inspect --format '{{.State.Running}}' "${ARTIFACTORY_CONTAINER_NAME}" 2>/dev/null |
+       grep --quiet '^true$'; then
+        echo "Stop Artifactory before creating a filesystem-level backup." >&2
+        echo "Run '$(basename "${BASH_SOURCE[0]}") stop' and retry." >&2
+        exit 1
+    fi
+
+    if [[ ! -d "${ARTIFACTORY_DATA_DIR}" ]]; then
+        echo "Artifactory data directory does not exist: ${ARTIFACTORY_DATA_DIR}" >&2
+        exit 1
+    fi
+
+    local backup_dir="${ARTIFACTORY_BACKUP_DIR:-${HOME}/.terminus/artifactory/backups}"
+    local backup_path="${backup_dir}/artifactory-$(date +%Y%m%d_%H%M%S).tar.gz"
+    mkdir -p "${backup_dir}"
+    tar -czf "${backup_path}" -C "$(dirname "${ARTIFACTORY_DATA_DIR}")" \
+        "$(basename "${ARTIFACTORY_DATA_DIR}")"
+    echo "Backup created: ${backup_path}"
+}
+
+function usage() {
+    cat <<EOF
+Usage: $(basename "${BASH_SOURCE[0]}") <command> [arguments]
+
+Manage the laptop-local Terminus Artifactory service.
+
+Commands:
+  start                       Start Artifactory in the background.
+  stop                        Stop Artifactory without deleting data.
+  restart                     Stop and start Artifactory.
+  status                      Show container and HTTP readiness.
+  logs                        Follow Artifactory logs.
+  backup                      Archive the stopped data directory.
+  configure-conan [username]  Add the local Conan remote and optionally log in.
+  help                        Show this help message.
+EOF
+}
+
+function main() {
+    load_environment
+
+    local command="${1:-help}"
+    if [[ "$#" -gt 0 ]]; then
+        shift
+    fi
+
+    case "${command}" in
+        start)
+            start_service "$@"
+            ;;
+        stop)
+            stop_service "$@"
+            ;;
+        restart)
+            stop_service
+            start_service
+            ;;
+        status)
+            show_status "$@"
+            ;;
+        logs)
+            show_logs "$@"
+            ;;
+        backup)
+            create_backup "$@"
+            ;;
+        configure-conan)
+            configure_conan "$@"
+            ;;
+        help|-h|--help)
+            usage
+            ;;
+        *)
+            echo "Unknown command: ${command}" >&2
+            usage >&2
+            exit 2
+            ;;
+    esac
+}
+
+main "$@"

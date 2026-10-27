@@ -1,0 +1,16 @@
+services:
+  artifactory:
+    image: ${ARTIFACTORY_IMAGE:-releases-docker.jfrog.io/jfrog/artifactory-cpp-ce:7.63.12}
+    container_name: ${ARTIFACTORY_CONTAINER_NAME:-terminus-artifactory}
+    restart: unless-stopped
+    environment:
+      JF_SHARED_DATABASE_TYPE: derby
+      JF_SHARED_DATABASE_ALLOWNONPOSTGRESQL: "true"
+      JF_ROUTER_ENTRYPOINTS_EXTERNALPORT: ${ARTIFACTORY_ROUTER_PORT:-8082}
+    ports:
+      - "127.0.0.1:${ARTIFACTORY_PORT:-8081}:8081"
+      - "127.0.0.1:${ARTIFACTORY_ROUTER_PORT:-8082}:8082"
+    volumes:
+      - type: bind
+        source: ${ARTIFACTORY_DATA_DIR}
+        target: /var/opt/jfrog/artifactory

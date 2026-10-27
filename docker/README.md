@@ -39,6 +39,10 @@ TERMINUS_RUNTIME_TAG=my-runtime:latest TERMINUS_BUILD_TAG=my-build:latest docker
 docker run --rm -it -v $(pwd):/src terminus-build-centos10
 ```
 
+## Local Artifactory
+
+A laptop-local JFrog Artifactory Community Edition deployment for Conan packages is available under [`docker/artifactory`](artifactory/README.md). It uses Docker Compose and persists application data under `~/.terminus/artifactory` by default.
+
 ## Notes
 
 - `Dockerfile.build` runs `conan-setup.bash` to create a default Conan profile and configure the remotes from `conan-setup.cfg`. If the configured remote is unreachable, this step is allowed to fail so the image can still be used with a manually configured cache.
