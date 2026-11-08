@@ -39,6 +39,12 @@ The documentation source lives in the `docs/` folder. The rendered pages are:
 - [Utility Scripts](https://Terminus-Geospatial.github.io/terminus_setup/utilities/)
 - [Troubleshooting](https://Terminus-Geospatial.github.io/terminus_setup/troubleshooting/)
 
+## Shared AI rules
+
+Reusable Devin rule templates and adoption guidance are maintained in [ai/devin/](ai/devin/README.md). These are templates, not automatically active configuration.
+
+**For new users creating a Terminus repository:** copy the applicable top-level `ai/devin/rules/*.md` templates into the new repository's `.devin/rules/` directory and commit them with the initial project setup. Use these shared templates as the baseline to keep coding standards consistent across repositories, adding project-specific rules only where needed. Follow the [adoption guidance](ai/devin/README.md#adoption) when updating an existing repository.
+
 ## TODO
 
 ### Future Enhancements
