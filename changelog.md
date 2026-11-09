@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
+## [1.0.8] - 2026-11-08
+
+### Changed
+
+- `docker/Dockerfile.build`: added `diffutils`, `patch`, `file`, `m4`, `autoconf`, `automake`, `libtool`, `gettext`, `pkgconf-pkg-config`, and `nasm` so third-party Conan recipes that build from source (libvpx, ffmpeg, and other autotools/nasm consumers) can configure and compile inside `terminus-build-centos10`.
+
+### Fixed
+
+- `scripts/utils/conan-setup.bash`: write `tools.cmake.cmaketoolchain:extra_variables` as a single-quoted dict literal; the previous double-quoted JSON form was corrupted to `{: 3.5}` on freshly generated profiles, breaking `conan install` on a cold cache.
+
 ## [1.0.7] - 2026-11-08
 
 ### Added

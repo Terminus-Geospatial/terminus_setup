@@ -279,7 +279,7 @@ if [ -f "${__conan_profile}" ]; then
 
     # Permit dependency projects with pre-3.5 policy declarations to configure
     # under CMake 4 while their upstream build files are being modernized.
-    readonly __cmake_policy_minimum='{"CMAKE_POLICY_VERSION_MINIMUM": "3.5"}'
+    readonly __cmake_policy_minimum="{'CMAKE_POLICY_VERSION_MINIMUM': '3.5'}"
     if grep -q '^tools\.cmake\.cmaketoolchain:extra_variables=' "${__conan_profile}"; then
         sed "s|^tools\.cmake\.cmaketoolchain:extra_variables=.*|tools.cmake.cmaketoolchain:extra_variables=${__cmake_policy_minimum}|" "${__conan_profile}" > "${__conan_profile}.tmp"
     else
